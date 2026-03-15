@@ -69,7 +69,7 @@ selectable: true,
 
   eventClick: async function(info){
 
-const confirmDelete = confirm("예약을 삭제하시겠습니까?");
+const confirmDelete = confirm("Confirm deletion of this reservation");
 
 if(!confirmDelete) return;
 
@@ -98,7 +98,7 @@ const snapshot = await db.collection("bookings")
 .get();
 
 if(!snapshot.empty){
-alert("이미 예약된 시간입니다.");
+alert("This time slot is already reserved");
 return;
 }
 
