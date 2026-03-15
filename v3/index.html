@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Meeting Room Booking</title>
+
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+<style>
+body{
+font-family: Arial;
+margin:40px;
+}
+
+#calendar{
+max-width:900px;
+margin:auto;
+}
+
+select{
+margin-bottom:20px;
+padding:6px;
+}
+
+#loginBtn{
+margin-bottom:10px;
+padding:6px 10px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Meeting Room Booking (v3)</h2>
+
+<button id="loginBtn">Google Login</button>
+<p id="userInfo"></p>
+
+<select id="room">
+<option value="1">Room 1</option>
+<option value="2">Room 2</option>
+</select>
+
+<div id="calendar"></div>
+
+<script>
+
+const firebaseConfig = {
+apiKey: "YOUR_API_KEY",
+authDomain: "YOUR_DOMAIN",
+projectId: "YOUR_PROJECT_ID",
+storageBucket: "YOUR_BUCKET",
+messagingSenderId: "YOUR_ID",
+appId: "YOUR_APP_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.firestore();
+const auth = firebase.auth();
+const provider = new firebase.auth.GoogleAuthProvider();
+
+document.getElementById("loginBtn").onclick = () => {
+auth.signInWithPopup(provider);
+};
+
+auth.onAuthStateChanged(user => {
+
+if(user){
+document.getElementById("userInfo").innerText =
+"Logged in as " + user.displayName;
+}
+
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+
+const calendarEl = document.getElementById('calendar');
+
+const calendar = new FullCalendar.Calendar(calendarEl, {
+
+initialView: 'timeGridWeek',
+
+slotDuration: '00:30:00',
+snapDuration: '00:30:00',
+
+slotMinTime: '09:00:00',
+slotMaxTime: '18:00:00',
+
+weekends:false,
+
+selectable: true,
+
+select: async function(info){
+
+const user = auth.currentUser;
+
+if(!user){
+alert("먼저 Google 로그인 해주세요.");
+return;
+}
+
+const name = user.displayName;
+
+const room = document.getElementById("room").value;
+
+const start = info.startStr;
+const end = info.endStr;
+
+const snapshot = await db.collection("bookings")
+.where("room","==",room)
+.get();
+
+let conflict = false;
+
+snapshot.forEach((doc)=>{
+const data = doc.data();
+
+if(!(end <= data.start || start >= data.end)){
+conflict = true;
+}
+
+});
+
+if(conflict){
+alert("이미 예약된 시간과 겹칩니다.");
+return;
+}
+
+const docRef = await db.collection("bookings").add({
+name:name,
+room:room,
+start:start,
+end:end
+});
+
+calendar.addEvent({
+id:docRef.id,
+title:name + " (Room " + room + ")",
+start:start,
+end:end
+});
+
+},
+
+eventClick: async function(info){
+
+const confirmDelete = confirm("예약을 삭제하시겠습니까?");
+if(!confirmDelete) return;
+
+await db.collection("bookings").doc(info.event.id).delete();
+
+info.event.remove();
+
+}
+
+});
+
+calendar.render();
+
+db.collection("bookings").get().then((snapshot)=>{
+
+snapshot.forEach((doc)=>{
+
+const data = doc.data();
+
+calendar.addEvent({
+id:doc.id,
+title:data.name + " (Room " + data.room + ")",
+start:data.start,
+end:data.end
+});
+
+});
+
+});
+
+});
+
+</script>
+
+</body>
+</html>
