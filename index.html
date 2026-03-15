@@ -64,7 +64,12 @@ const calendar = new FullCalendar.Calendar(calendarEl, {
 initialView: 'timeGridWeek',
 
 slotDuration: '00:30:00',
+slotLabelInterval: '00:30',
+SnapDuration: '00:30:00',
 
+slotMinTime: '09:00:00',
+slotMaxTime: '18:00:00',
+  
 selectable: true,
 
   eventClick: async function(info){
