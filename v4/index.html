@@ -159,6 +159,7 @@ const auth = firebase.auth();
 const provider = new firebase.auth.GoogleAuthProvider();
 
 let currentRoom = "1";
+const isMobile = window.innerWidth < 768
 
 document.getElementById("loginBtn").onclick = ()=>{
 auth.signInWithPopup(provider);
@@ -190,14 +191,72 @@ slotMaxTime:'18:30:00',
 
 weekends:false,
 
-selectable:true,
+selectable: !isMobile,
 selectMirror:true,
 longPressDelay:150,
 
 unselectAuto:false,
 selectOverlap:false,
 selectMinDistance:5,
+dateClick: async function(info){
 
+  if(!isMobile) return;
+
+  const user = auth.currentUser;
+
+  if(!user){
+    alert("Google 로그인 먼저 해주세요.");
+    return;
+  }
+
+  const start = info.dateStr;
+
+  const startDate = new Date(info.date);
+  const endDate = new Date(startDate.getTime() + 30*60*1000);
+  const end = endDate.toISOString();
+
+  if(!confirm("30분 예약하시겠습니까?")) return;
+
+  const snapshot = await db.collection("bookings")
+    .where("room","==",currentRoom)
+    .get();
+
+  let conflict=false;
+
+  snapshot.forEach(doc=>{
+    const data=doc.data();
+
+    if(!(end<=data.start || start>=data.end)){
+      conflict=true;
+    }
+  });
+
+  if(conflict){
+    alert("이미 예약된 시간입니다.");
+    return;
+  }
+
+  const docRef = await db.collection("bookings").add({
+    name:user.displayName,
+    email:user.email,
+    room:currentRoom,
+    start:start,
+    end:end
+  });
+
+  const color = currentRoom==="1" ? "#2383e2" : "#22c55e";
+
+  calendar.addEvent({
+    id:docRef.id,
+    title:user.displayName,
+    start:start,
+    end:end,
+    backgroundColor:color,
+    borderColor:color,
+    extendedProps:{email:user.email}
+  });
+
+},
 select: async function(info){
 
 const user = auth.currentUser;
