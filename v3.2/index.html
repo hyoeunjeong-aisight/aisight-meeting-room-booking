@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title> Meeting Rooms</title>
 
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
@@ -85,7 +86,32 @@ box-shadow:0 2px 8px rgba(0,0,0,0.06);
 border:none;
 border-radius:6px;
 }
+@media (max-width:768px){
 
+.app{
+padding:15px;
+}
+
+.header{
+flex-direction:column;
+align-items:flex-start;
+gap:10px;
+}
+
+.controls{
+width:100%;
+justify-content:space-between;
+}
+
+.logo{
+height:40px;
+}
+
+.title{
+font-size:18px;
+}
+
+}
 </style>
 </head>
 
@@ -96,7 +122,7 @@ border-radius:6px;
 <div class="header">
 
 <div class="logo-area">
-<img src="https://github.com/hyoeunjeong-aisight/aisight-meeting-room-booking/blob/main/v3.2/Group%2027.png?raw=true" class="logo">
+<img src="https://github.com/hyoeunjeong-aisight/aisight-meeting-room-booking/blob/main/v3.2/Group%2027.png" class="logo">
 <span class="title">AIsight Meeting Rooms</span>
 </div>
 
@@ -152,7 +178,9 @@ const calendarEl = document.getElementById('calendar');
 
 const calendar = new FullCalendar.Calendar(calendarEl,{
 
-initialView:'timeGridWeek',
+initialView: window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek',
+
+height:"auto",
 
 allDaySlot:false,
   
