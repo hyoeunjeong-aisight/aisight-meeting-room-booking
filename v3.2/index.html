@@ -278,7 +278,12 @@ info.event.remove();
 
 calendar.render();
 
-db.collection("bookings").get().then(snapshot=>{
+const room = document.getElementByID("room").value;
+  
+db.collection("bookings")
+  .where("room","==",room)
+  .get()
+  .then(snapshot=>{
 
 snapshot.forEach(doc=>{
 
