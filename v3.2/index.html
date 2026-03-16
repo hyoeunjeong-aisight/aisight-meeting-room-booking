@@ -284,7 +284,7 @@ info.event.remove();
 
 calendar.render();
 
-const room = document.getElementByID("room").value;
+const room = document.getElementById("room").value;
   
 db.collection("bookings")
   .where("room","==",room)
