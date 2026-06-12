@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <meta charset="utf-8">
-<title>Meeting Room Booking</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title> Meeting Rooms</title>
 
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
@@ -12,65 +15,145 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
 <style>
+
 body{
-font-family: Arial;
-margin:40px;
+margin:0;
+background:#f7f7f5;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
+color:#2f3437;
+}
+
+.app{
+max-width:1100px;
+margin:auto;
+padding:30px;
+}
+
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+}
+
+.logo-area{
+display:flex;
+align-items:center;
+gap:10px;
+}
+
+.logo{
+height:50px;
+}
+
+.title{
+font-size:20px;
+font-weight:600;
+}
+
+button{
+background:#2383e2;
+border:none;
+color:white;
+padding:8px 14px;
+border-radius:6px;
+cursor:pointer;
+}
+
+button:hover{
+background:#1a6fc1;
+}
+
+.room-tabs{
+display:flex;
+gap:10px;
+margin-bottom:15px;
+flex-wrap:wrap;
+}
+
+.roomTab{
+background:#e5e7eb;
+border:none;
+padding:8px 16px;
+border-radius:6px;
+cursor:pointer;
+color:#2f3437;
+}
+
+.roomTab.active{
+background:#2383e2;
+color:white;
 }
 
 #calendar{
-max-width:900px;
-margin:auto;
+background:white;
+padding:20px;
+border-radius:10px;
+box-shadow:0 2px 8px rgba(0,0,0,0.06);
 }
 
-select{
-margin-bottom:20px;
-padding:6px;
+@media (max-width:768px){
+
+.app{padding:15px;}
+
+.header{
+flex-direction:column;
+align-items:flex-start;
+gap:10px;
 }
 
-#loginBtn{
-margin-bottom:10px;
-padding:6px 10px;
+.logo{height:40px;}
+
 }
+
+.footer{
+text-align:center;
+font-size:12px;
+color:#888;
+margin-top:40px;
+padding-bottom:20px;
+}
+
 </style>
+
 </head>
 
 <body>
 
-<div class="container">
+<div class="app">
 
-<div class="topbar">
+<div class="header">
 
-<div>
-<h2>Meeting Room Booking</h2>
-<p id="userInfo"></p>
+<div class="logo-area">
+<img src="https://github.com/hyoeunjeong-aisight/aisight-meeting-room-booking/blob/main/v3.2/Group%2027.png?raw=true" class="logo">
+<span class="title">Meeting Rooms</span>
 </div>
-
-<div>
-<select id="room">
-<option value="1">Room 1</option>
-<option value="2">Room 2</option>
-</select>
 
 <button id="loginBtn">Google Login</button>
+
 </div>
 
+<p id="userInfo"></p>
+
+<div class="room-tabs">
+<button class="roomTab active" data-room="1">Room 1</button>
+<button class="roomTab" data-room="2">Room 2</button>
+<button class="roomTab" data-room="3">Room 3</button>
+<button class="roomTab" data-room="4">Room 4</button>
 </div>
 
 <div id="calendar"></div>
 
 </div>
-
+<footer class="footer">
+© 2026 AIsight. Meeting Room Booking System
+</footer>
 <script>
 
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyDwYLPPFyBsAZzHuAFCkH1Z6GrI7_0T8BI",
-  authDomain: "aisight-meeting-room.firebaseapp.com",
-  projectId: "aisight-meeting-room",
-  storageBucket: "aisight-meeting-room.firebasestorage.app",
-  messagingSenderId: "100124839761",
-  appId: "1:100124839761:web:4883bd96813bab53f00d70",
-  measurementId: "G-2XLKPK62D0"
+apiKey:"AIzaSyDwYLPPFyBsAZzHuAFCkH1Z6GrI7_0T8BI",
+authDomain:"aisight-meeting-room.firebaseapp.com",
+projectId:"aisight-meeting-room"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -79,127 +162,238 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const provider = new firebase.auth.GoogleAuthProvider();
 
-document.getElementById("loginBtn").onclick = () => {
+let currentRoom = "1";
+const isMobile = window.innerWidth < 768
+
+// 방별 색상 매핑 (Room 1~4)
+const roomColors = {
+  "1":"#2383e2",
+  "2":"#22c55e",
+  "3":"#f97316",
+  "4":"#a855f7"
+};
+
+function getRoomColor(roomId){
+  return roomColors[roomId] || "#6b7280";
+}
+
+document.getElementById("loginBtn").onclick = ()=>{
 auth.signInWithPopup(provider);
 };
 
-auth.onAuthStateChanged(user => {
-
+auth.onAuthStateChanged(user=>{
 if(user){
 document.getElementById("userInfo").innerText =
 "Logged in as " + user.displayName;
 }
-
 });
 
-document.addEventListener('DOMContentLoaded', function() {
+const calendarEl = document.getElementById("calendar");
 
-const calendarEl = document.getElementById('calendar');
+const calendar = new FullCalendar.Calendar(calendarEl,{
 
-const calendar = new FullCalendar.Calendar(calendarEl, {
+initialView: window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek',
 
-initialView: 'timeGridWeek',
+height:"auto",
 
-slotDuration: '00:30:00',
-snapDuration: '00:30:00',
+allDaySlot:false,
+nowIndicator:true,
 
-slotMinTime: '09:00:00',
-slotMaxTime: '18:00:00',
+slotDuration:'00:30:00',
+snapDuration:'00:30:00',
+
+slotMinTime:'08:00:00',
+slotMaxTime:'18:30:00',
 
 weekends:false,
 
-selectable: true,
+selectable: !isMobile,
+selectMirror:true,
+longPressDelay:150,
 
+unselectAuto:false,
+selectOverlap:false,
+selectMinDistance:5,
+dateClick: async function(info){
+
+  if(!isMobile) return;
+
+  const user = auth.currentUser;
+
+  if(!user){
+    alert("Google 로그인 먼저 해주세요.");
+    return;
+  }
+
+  const start = info.dateStr;
+
+  const startDate = new Date(info.date);
+  const endDate = new Date(startDate.getTime() + 30*60*1000);
+  const end = endDate.toISOString();
+
+  if(!confirm("30분 예약하시겠습니까?")) return;
+
+  const snapshot = await db.collection("bookings")
+    .where("room","==",currentRoom)
+    .get();
+
+  let conflict=false;
+
+  snapshot.forEach(doc=>{
+    const data=doc.data();
+
+    if(!(end<=data.start || start>=data.end)){
+      conflict=true;
+    }
+  });
+
+  if(conflict){
+    alert("이미 예약된 시간입니다.");
+    return;
+  }
+
+  const docRef = await db.collection("bookings").add({
+    name:user.displayName,
+    email:user.email,
+    room:currentRoom,
+    start:start,
+    end:end
+  });
+
+  const color = getRoomColor(currentRoom);
+
+  calendar.addEvent({
+    id:docRef.id,
+    title:user.displayName,
+    start:start,
+    end:end,
+    backgroundColor:color,
+    borderColor:color,
+    extendedProps:{email:user.email}
+  });
+
+},
 select: async function(info){
 
 const user = auth.currentUser;
 
 if(!user){
-alert("먼저 Google 로그인 해주세요.");
+alert("Google 로그인 먼저 해주세요.");
 return;
 }
-
-const name = user.displayName;
-
-const room = document.getElementById("room").value;
 
 const start = info.startStr;
 const end = info.endStr;
 
-const snapshot = await db.collection("bookings")
-.where("room","==",room)
-.get();
-
-let conflict = false;
-
-snapshot.forEach((doc)=>{
-const data = doc.data();
-
-if(!(end <= data.start || start >= data.end)){
-conflict = true;
+if(!confirm("이 시간에 예약하시겠습니까?")){
+calendar.unselect();
+return;
 }
 
+const snapshot = await db.collection("bookings")
+.where("room","==",currentRoom)
+.get();
+
+let conflict=false;
+
+snapshot.forEach(doc=>{
+const data=doc.data();
+
+if(!(end<=data.start || start>=data.end)){
+conflict=true;
+}
 });
 
 if(conflict){
-alert("이미 예약된 시간과 겹칩니다.");
+alert("이미 예약된 시간입니다.");
 return;
 }
 
 const docRef = await db.collection("bookings").add({
-name:name,
-email:email,
-room:room,
+name:user.displayName,
+email:user.email,
+room:currentRoom,
 start:start,
 end:end
 });
 
+const color = getRoomColor(currentRoom);
+
 calendar.addEvent({
 id:docRef.id,
-title:name + " (Room " + room + ")",
+title:user.displayName,
 start:start,
-end:end
-extendProps:{
-email:email
-}
+end:end,
+backgroundColor:color,
+borderColor:color,
+extendedProps:{email:user.email}
 });
 
 },
 
+eventClick: async function(info){
+
 const user = auth.currentUser;
 
 if(info.event.extendedProps.email !== user.email){
-alert("본인이 예약한 일정만 삭제할 수 있습니다.");
+alert("본인 예약만 삭제할 수 있습니다.");
 return;
 }
 
-const confirmDelete = confirm("예약을 삭제하시겠습니까?");
-if(!confirmDelete) return;
+if(!confirm("예약 삭제하시겠습니까?")) return;
 
 await db.collection("bookings").doc(info.event.id).delete();
+
 info.event.remove();
+
+}
 
 });
 
 calendar.render();
 
-db.collection("bookings").get().then((snapshot)=>{
+async function loadBookings(){
 
-snapshot.forEach((doc)=>{
+calendar.removeAllEvents();
+
+const snapshot = await db.collection("bookings")
+.where("room","==",currentRoom)
+.get();
+
+snapshot.forEach(doc=>{
 
 const data = doc.data();
 
+const color = getRoomColor(data.room);
+
 calendar.addEvent({
 id:doc.id,
-title:data.name + " (Room " + data.room + ")",
+title:data.name,
 start:data.start,
-end:data.end
-extendedProps:{
-  email:data.email
-}
+end:data.end,
+backgroundColor:color,
+borderColor:color,
+extendedProps:{email:data.email}
 });
 
 });
+
+}
+
+loadBookings();
+
+document.querySelectorAll(".roomTab").forEach(btn=>{
+
+btn.addEventListener("click",()=>{
+
+document.querySelectorAll(".roomTab")
+.forEach(b=>b.classList.remove("active"));
+
+btn.classList.add("active");
+
+currentRoom = btn.dataset.room;
+
+loadBookings();
 
 });
 
