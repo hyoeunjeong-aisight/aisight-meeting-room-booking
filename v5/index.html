@@ -68,6 +68,7 @@ background:#1a6fc1;
 display:flex;
 gap:10px;
 margin-bottom:15px;
+flex-wrap:wrap;
 }
 
 .roomTab{
@@ -76,6 +77,7 @@ border:none;
 padding:8px 16px;
 border-radius:6px;
 cursor:pointer;
+color:#2f3437;
 }
 
 .roomTab.active{
@@ -136,13 +138,15 @@ padding-bottom:20px;
 <div class="room-tabs">
 <button class="roomTab active" data-room="1">Room 1</button>
 <button class="roomTab" data-room="2">Room 2</button>
+<button class="roomTab" data-room="3">Room 3</button>
+<button class="roomTab" data-room="4">Room 4</button>
 </div>
 
 <div id="calendar"></div>
 
 </div>
 <footer class="footer">
-© 2026 AIsight. Meeting Room Booking System by Hyoeun Jeong.
+© 2026 AIsight. Meeting Room Booking System
 </footer>
 <script>
 
@@ -159,6 +163,19 @@ const auth = firebase.auth();
 const provider = new firebase.auth.GoogleAuthProvider();
 
 let currentRoom = "1";
+const isMobile = window.innerWidth < 768
+
+// 방별 색상 매핑 (Room 1~4)
+const roomColors = {
+  "1":"#2383e2",
+  "2":"#22c55e",
+  "3":"#f97316",
+  "4":"#a855f7"
+};
+
+function getRoomColor(roomId){
+  return roomColors[roomId] || "#6b7280";
+}
 
 document.getElementById("loginBtn").onclick = ()=>{
 auth.signInWithPopup(provider);
@@ -185,19 +202,77 @@ nowIndicator:true,
 slotDuration:'00:30:00',
 snapDuration:'00:30:00',
 
-slotMinTime:'09:00:00',
+slotMinTime:'08:00:00',
 slotMaxTime:'18:30:00',
 
 weekends:false,
 
-selectable:true,
+selectable: !isMobile,
 selectMirror:true,
 longPressDelay:150,
 
 unselectAuto:false,
 selectOverlap:false,
 selectMinDistance:5,
+dateClick: async function(info){
 
+  if(!isMobile) return;
+
+  const user = auth.currentUser;
+
+  if(!user){
+    alert("Google 로그인 먼저 해주세요.");
+    return;
+  }
+
+  const start = info.dateStr;
+
+  const startDate = new Date(info.date);
+  const endDate = new Date(startDate.getTime() + 30*60*1000);
+  const end = endDate.toISOString();
+
+  if(!confirm("30분 예약하시겠습니까?")) return;
+
+  const snapshot = await db.collection("bookings")
+    .where("room","==",currentRoom)
+    .get();
+
+  let conflict=false;
+
+  snapshot.forEach(doc=>{
+    const data=doc.data();
+
+    if(!(end<=data.start || start>=data.end)){
+      conflict=true;
+    }
+  });
+
+  if(conflict){
+    alert("이미 예약된 시간입니다.");
+    return;
+  }
+
+  const docRef = await db.collection("bookings").add({
+    name:user.displayName,
+    email:user.email,
+    room:currentRoom,
+    start:start,
+    end:end
+  });
+
+  const color = getRoomColor(currentRoom);
+
+  calendar.addEvent({
+    id:docRef.id,
+    title:user.displayName,
+    start:start,
+    end:end,
+    backgroundColor:color,
+    borderColor:color,
+    extendedProps:{email:user.email}
+  });
+
+},
 select: async function(info){
 
 const user = auth.currentUser;
@@ -242,7 +317,7 @@ start:start,
 end:end
 });
 
-const color = currentRoom==="1" ? "#2383e2" : "#22c55e";
+const color = getRoomColor(currentRoom);
 
 calendar.addEvent({
 id:docRef.id,
@@ -289,7 +364,7 @@ snapshot.forEach(doc=>{
 
 const data = doc.data();
 
-const color = data.room==="1" ? "#2383e2" : "#22c55e";
+const color = getRoomColor(data.room);
 
 calendar.addEvent({
 id:doc.id,
