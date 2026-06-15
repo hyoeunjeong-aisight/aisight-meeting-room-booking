@@ -85,6 +85,45 @@ background:#2383e2;
 color:white;
 }
 
+.room-info{
+display:flex;
+align-items:center;
+gap:10px;
+background:white;
+border-radius:10px;
+padding:12px 18px;
+margin-bottom:15px;
+box-shadow:0 2px 8px rgba(0,0,0,0.06);
+font-size:14px;
+color:#555;
+border-left:4px solid var(--room-color, #2383e2);
+}
+
+.room-info .room-name{
+font-weight:700;
+color:#2f3437;
+font-size:15px;
+}
+
+.room-info .divider{
+color:#ddd;
+}
+
+.room-info .capacity-badge{
+display:inline-flex;
+align-items:center;
+gap:6px;
+font-weight:600;
+color:#2f3437;
+background:#f1f3f5;
+padding:4px 10px;
+border-radius:20px;
+}
+
+.room-info .capacity-icon{
+font-size:15px;
+}
+
 #calendar{
 background:white;
 padding:20px;
@@ -139,7 +178,13 @@ padding-bottom:20px;
 <button class="roomTab active" data-room="1">Room 1</button>
 <button class="roomTab" data-room="2">Room 2</button>
 <button class="roomTab" data-room="3">Room 3</button>
-<button class="roomTab" data-room="4">Room 4</button>
+<button class="roomTab" data-room="4">Room 4(test room)@19F</button>
+</div>
+
+<div class="room-info" id="roomInfo">
+<span class="room-name" id="roomName">Room 1</span>
+<span class="divider">|</span>
+<span class="capacity-badge"><span class="capacity-icon">👥</span><span id="roomCapacity">4인실</span></span>
 </div>
 
 <div id="calendar"></div>
@@ -173,8 +218,23 @@ const roomColors = {
   "4":"#a855f7"
 };
 
+// 방별 이름 및 수용 인원 정보
+const roomInfo = {
+  "1":{name:"Room 1", capacity:"4인실"},
+  "2":{name:"Room 2", capacity:"6인실"},
+  "3":{name:"Room 3", capacity:"8인실"},
+  "4":{name:"Room 4 (test room) @19F", capacity:"2인실"}
+};
+
 function getRoomColor(roomId){
   return roomColors[roomId] || "#6b7280";
+}
+
+function updateRoomInfo(roomId){
+  const info = roomInfo[roomId] || {name:"Room", capacity:"-"};
+  document.getElementById("roomName").innerText = info.name;
+  document.getElementById("roomCapacity").innerText = info.capacity;
+  document.getElementById("roomInfo").style.setProperty("--room-color", getRoomColor(roomId));
 }
 
 document.getElementById("loginBtn").onclick = ()=>{
@@ -381,6 +441,7 @@ extendedProps:{email:data.email}
 }
 
 loadBookings();
+updateRoomInfo(currentRoom);
 
 document.querySelectorAll(".roomTab").forEach(btn=>{
 
@@ -393,6 +454,7 @@ btn.classList.add("active");
 
 currentRoom = btn.dataset.room;
 
+updateRoomInfo(currentRoom);
 loadBookings();
 
 });
